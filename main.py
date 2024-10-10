@@ -56,8 +56,8 @@ if __name__ == "__main__":
     create_db_directory(db_dir)  # Create a db directory at the specified path
 
     # Initialize the database with the specified path
-    init_main_repo(db_dir, git_access_token, main_repo_name)
-    init_repo_fam(db_dir, git_access_token, main_repo_name, forks)
+    # init_main_repo(db_dir, git_access_token, main_repo_name)
+    # init_repo_fam(db_dir, git_access_token, main_repo_name, forks)
 
     timestamp = args.interval
     run_bot(timestamp, args.config_file)

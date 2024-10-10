@@ -97,8 +97,8 @@ def fetch_github_branches_and_commits(git_access_token, main_repo_name, forks):
     # Add main repo and forks to the list
     if isinstance(forks, str):
         forks = ast.literal_eval(forks)
-    repo_list = [main_repo_name] + forks
-    
+    # repo_list = [main_repo_name] + forks
+    repo_list = [main_repo_name]
     for repo_info in repo_list:
         owner, name = repo_info.split('/')
         repo = github_client.get_repo(f"{owner}/{name}")

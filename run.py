@@ -61,9 +61,9 @@ def run(config):
     print("Branch report")
 
     # Update the database with the current state
-    update_main_repo(db_dir, current_state)
-    update_database_with_branches(db_dir, access_token, main_repo_name, forks)
-    print("Database update")
+    # update_main_repo(db_dir, current_state)
+    # update_database_with_branches(db_dir, access_token, main_repo_name, forks)
+    # print("Database update")
 
     end_time = time.time()
     print(f"End time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")

@@ -71,6 +71,66 @@ def convert_commits(paginated_commits):
     return [{"name": commit.commit.message.split('\n')[0], "link": commit.html_url, "sha": commit.sha} for commit in paginated_commits]
 
 # Compares the current and previous states of branches to identify changes.
+# def compare_states(current_state, previous_state, github_client):
+#     new_branches = []
+#     updated_branches = []
+#     deleted_branches = []
+#     rebased_branches = []
+#     current_branch_keys = {(b['repo_owner'], b['repo_name'], b['branch_name']) for b in current_state}
+    
+#     for current_branch in current_state:
+#         repo_full_name = f"{current_branch['repo_owner']}/{current_branch['repo_name']}"
+#         repo = github_client.get_repo(repo_full_name)
+        
+#         previous_branch = next((b for b in previous_state 
+#                                 if b["repo_owner"] == current_branch["repo_owner"] 
+#                                 and b["repo_name"] == current_branch["repo_name"] 
+#                                 and b["branch_name"] == current_branch["branch_name"]), None)
+        
+#         if previous_branch is None:
+#             default_branch = repo.default_branch
+#             comparison = repo.compare(default_branch, current_branch["branch_name"])
+#             if comparison.commits:
+#                 new_branches.append({
+#                     "repo_owner": current_branch["repo_owner"],
+#                     "repo_name": current_branch["repo_name"],
+#                     "branch_name": current_branch["branch_name"],
+#                     "commit_hash": current_branch["commit_hash"],
+#                     "commits": convert_commits(comparison.commits)
+#                 })
+                
+#         elif current_branch["commit_hash"] != previous_branch["commit_hash"]:
+#             comparison = repo.compare(previous_branch["commit_hash"], current_branch["commit_hash"])
+#             if comparison.commits:
+#                 updated_branches.append({
+#                     "repo_owner": current_branch["repo_owner"],
+#                     "repo_name": current_branch["repo_name"],
+#                     "branch_name": current_branch["branch_name"],
+#                     "current_commit_hash": current_branch["commit_hash"],
+#                     "previous_commit_hash": previous_branch["commit_hash"],
+#                     "commits": convert_commits(comparison.commits)
+#                 })
+#                 if is_rebased(comparison):
+#                     rebased_branches.append({
+#                         "repo_owner": current_branch["repo_owner"],
+#                         "repo_name": current_branch["repo_name"],
+#                         "branch_name": current_branch["branch_name"],
+#                         "commits": convert_commits(comparison.commits)
+#                     })
+    
+#     for previous_branch in previous_state:
+#         if (previous_branch['repo_owner'], previous_branch['repo_name'], previous_branch['branch_name']) not in current_branch_keys:
+#             deleted_branches.append(previous_branch)
+    
+#     return new_branches, updated_branches, deleted_branches, rebased_branches
+
+# # Determines if a branch has been rebased by checking the base commit SHA.
+# def is_rebased(comparison):
+#     base_commit_sha = comparison.base_commit.sha
+#     comparison_commit_shas = {commit.sha for commit in comparison.commits}
+    
+#     return base_commit_sha not in comparison_commit_shas
+
 def compare_states(current_state, previous_state, github_client):
     new_branches = []
     updated_branches = []
@@ -88,8 +148,8 @@ def compare_states(current_state, previous_state, github_client):
                                 and b["branch_name"] == current_branch["branch_name"]), None)
         
         if previous_branch is None:
-            default_branch = repo.default_branch
-            comparison = repo.compare(default_branch, current_branch["branch_name"])
+            parent_branch_name = determine_parent_branch(repo, current_branch["branch_name"])
+            comparison = repo.compare(parent_branch_name, current_branch["branch_name"])
             if comparison.commits:
                 new_branches.append({
                     "repo_owner": current_branch["repo_owner"],
@@ -98,6 +158,7 @@ def compare_states(current_state, previous_state, github_client):
                     "commit_hash": current_branch["commit_hash"],
                     "commits": convert_commits(comparison.commits)
                 })
+                
         elif current_branch["commit_hash"] != previous_branch["commit_hash"]:
             comparison = repo.compare(previous_branch["commit_hash"], current_branch["commit_hash"])
             if comparison.commits:
@@ -123,12 +184,30 @@ def compare_states(current_state, previous_state, github_client):
     
     return new_branches, updated_branches, deleted_branches, rebased_branches
 
-# Determines if a branch has been rebased by checking the base commit SHA.
 def is_rebased(comparison):
+    # Implement enhanced rebase detection logic here
     base_commit_sha = comparison.base_commit.sha
     comparison_commit_shas = {commit.sha for commit in comparison.commits}
     
+    # Additional checks for rebase detection
+    # For example, checking if the parent commit has changed
     return base_commit_sha not in comparison_commit_shas
+# Fallback to default branch if no specific parent found
+
+def determine_parent_branch(repo, new_branch):
+    """
+    Finds the most likely parent branch for a new branch based on the commit history.
+    """
+    branches = repo.get_branches()
+    
+    # Loop through all branches and find the common ancestor (most recent common commit)
+    for branch in branches:
+        if branch.name != new_branch["branch_name"]:
+            comparison = repo.compare(branch.name, new_branch["branch_name"])
+            if comparison.behind_by == 0:  # Found parent branch (new_branch has all commits from this branch)
+                return branch.name
+    
+    return repo.default_branch  # Fallback to default branch if no other branch is found
 
 # Finds commits merged into the main branch without an associated pull request.
 def find_merged_commits_without_pr(main_repo_name, current_state, previous_state, github_client):
@@ -292,7 +371,8 @@ def branch_movements(db_dir, git_access_token, main_repo_name, forks):
     github_client = Github(git_access_token)
     if isinstance(forks, str):
         forks = ast.literal_eval(forks)
-    repo_family = [main_repo_name] + forks
+    repo_family = [main_repo_name]     
+    # repo_family = [main_repo_name] + forks
 
     db_path = os.path.join(db_dir, 'repo_fam.db')
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
