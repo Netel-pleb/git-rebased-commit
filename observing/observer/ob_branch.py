@@ -185,29 +185,23 @@ def compare_states(current_state, previous_state, github_client):
     return new_branches, updated_branches, deleted_branches, rebased_branches
 
 def is_rebased(comparison):
-    # Implement enhanced rebase detection logic here
     base_commit_sha = comparison.base_commit.sha
     comparison_commit_shas = {commit.sha for commit in comparison.commits}
-    
-    # Additional checks for rebase detection
-    # For example, checking if the parent commit has changed
     return base_commit_sha not in comparison_commit_shas
-# Fallback to default branch if no specific parent found
 
-def determine_parent_branch(repo, new_branch):
+def determine_parent_branch(repo, new_branch_name):
     """
     Finds the most likely parent branch for a new branch based on the commit history.
     """
     branches = repo.get_branches()
     
-    # Loop through all branches and find the common ancestor (most recent common commit)
     for branch in branches:
-        if branch.name != new_branch["branch_name"]:
-            comparison = repo.compare(branch.name, new_branch["branch_name"])
-            if comparison.behind_by == 0:  # Found parent branch (new_branch has all commits from this branch)
+        if branch.name != new_branch_name:
+            comparison = repo.compare(branch.name, new_branch_name)
+            if comparison.behind_by == 0:
                 return branch.name
     
-    return repo.default_branch  # Fallback to default branch if no other branch is found
+    return repo.default_branch
 
 # Finds commits merged into the main branch without an associated pull request.
 def find_merged_commits_without_pr(main_repo_name, current_state, previous_state, github_client):
