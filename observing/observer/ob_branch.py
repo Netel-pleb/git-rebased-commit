@@ -137,7 +137,7 @@ def compare_states(current_state, previous_state, github_client):
     deleted_branches = []
     rebased_branches = []
     current_branch_keys = {(b['repo_owner'], b['repo_name'], b['branch_name']) for b in current_state}
-    
+    # print(current_state, previous_state)
     for current_branch in current_state:
         repo_full_name = f"{current_branch['repo_owner']}/{current_branch['repo_name']}"
         repo = github_client.get_repo(repo_full_name)
@@ -181,7 +181,8 @@ def compare_states(current_state, previous_state, github_client):
     for previous_branch in previous_state:
         if (previous_branch['repo_owner'], previous_branch['repo_name'], previous_branch['branch_name']) not in current_branch_keys:
             deleted_branches.append(previous_branch)
-    
+    print("hello")
+    print(new_branches, updated_branches, deleted_branches, rebased_branches)    
     return new_branches, updated_branches, deleted_branches, rebased_branches
 
 def is_rebased(comparison):
@@ -262,7 +263,8 @@ def get_github_profile_image(repo_owner):
 # Generates a report of branch changes and movements.
 def generate_report(new_branches, updated_branches, deleted_branches, rebased_branches):
     fields = []
-
+    print("ggg")
+    print(new_branches, updated_branches, deleted_branches, rebased_branches)
     if new_branches:
         new_field = {
             "name": "\n\n🌿 **New branches and commits** 🌿\n\n\n",
@@ -278,7 +280,10 @@ def generate_report(new_branches, updated_branches, deleted_branches, rebased_br
             new_field["value"] += f"\n* *branch* : [{branch['branch_name']} [{repo_full_name}]]({branch_url})\n"
             for i, commit in enumerate(branch["commits"]):
                 new_field["value"] += f"\n * [{commit['name']}]({commit['link']})" if i else f" * [{commit['name']}]({commit['link']})"
+        print("new_field")
+        print(new_field['value'])
         fields.append(new_field)
+        print("filed", fields)
 
     if updated_branches:
         updated_field = {

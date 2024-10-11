@@ -46,6 +46,7 @@ def run(config):
         "branches": main_branches,
         "prs": {int(key): value for key, value in main_prs.items()}
     }
+    print(current_state)
     previous_state["prs"] = {int(key): value for key, value in previous_state["prs"].items()}
 
     # Find open and merged pull requests
